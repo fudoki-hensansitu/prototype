@@ -47,5 +47,5 @@ deploy の手順は README を見る。lint とテストは持たない。
 
 ## レビュー・計測
 
-- Pullfrog は無効にしている（playground のため）。設定の正本は `.github/pullfrog.config.sh`。backend の値は git から見えないので、変えるときはこの script を直して実行する
+- PR レビューは Pullfrog。PR の merge で Pullfrog を待たなくてよい。設定の正本は `.github/pullfrog.config.sh`（backend の値は git から見えないので、変えるときはこの script を直して実行する）。model・effort・instructions は org の既定を継承する
 - agent session の trace を Langfuse に送る。opt-in の file は gitignore 済みなので、`orca.yaml` の setup が新しい worktree へ同期する。新しい checkout では `pi install -l --approve "git:github.com/wwwyo/pi-observability-plugin@v0.2.0"` をやり直す
