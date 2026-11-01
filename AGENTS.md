@@ -10,8 +10,7 @@
 ├── docs/<poc>/         # その PoC で何を作り何を確かめるか
 ├── routes/             # Void の route。`routes/<poc>/index.ts` が `/<poc>` を配る
 ├── home/index.html     # `/` の PoC 一覧
-├── void.config.ts      # Worker 名と入口（prototype.fudoki.dev）
-└── void.lock.json      # Void の解決結果。commit する
+└── void.config.ts      # Worker 名と入口（prototype.fudoki.dev）
 ```
 
 PoC はコードと docs を同名の dir で切る。PoC を足すときは次を揃える。
