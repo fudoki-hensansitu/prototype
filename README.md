@@ -23,7 +23,7 @@ mise exec -- bun run dev
 ```bash
 mise exec -- bun run check
 mise exec -- bunx void deploy --platform cloudflare
-curl -sS https://prototype.fudoki.dev/__void/ready
+curl -fsS https://prototype.fudoki.dev/__void/ready
 ```
 
 環境に secret の環境変数があると、build が `dist/ssr/.dev.vars` に平文で書きます（upload はされません）。deploy する shell には `CLOUDFLARE_*` などの secret を入れないでください。

@@ -39,8 +39,13 @@ deploy の手順は README を見る。lint とテストは持たない。
 ## 技術スタック
 
 - Bun + TypeScript
-- [Void](https://void.cloud)（Cloudflare Worker `prototype`）。使い方は `bun install` 後の `node_modules/void/docs/` を読む
+- [Void](https://void.cloud)（Cloudflare Worker `prototype`）。`void.lock.json` は Void が生成したら commit する
 
-## レビュー
+## Skills
 
-PR レビューは Pullfrog。設定の正本は `.github/pullfrog.config.sh`（backend の値は git から見えないので、変えるときはこの script を直して実行する）。model・effort・instructions は org の既定を継承する。public repo なので追加コミットも自動で再レビューし（`review.re-review=true`）、`@pullfrog` で手動依頼もできる。
+- Void でアプリを作る・CLI を使うとき → `.agents/skills/void/`（`voidzero-dev/void` から skillctrl で取得。取得元と hash は `skills-lock.json`・`.agents/skillctrl/`）。Claude Code へは `.claude/skills/` の相対 symlink で渡す
+
+## レビュー・計測
+
+- Pullfrog は無効にしている（playground のため）。設定の正本は `.github/pullfrog.config.sh`。backend の値は git から見えないので、変えるときはこの script を直して実行する
+- agent session の trace を Langfuse に送る。opt-in の file は gitignore 済みなので、`orca.yaml` の setup が新しい worktree へ同期する。新しい checkout では `pi install -l --approve "git:github.com/wwwyo/pi-observability-plugin@v0.2.0"` をやり直す
