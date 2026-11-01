@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>議員AIエージェント試作</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* 源内（デジタル庁デザインシステム）の型を借りた業務画面: 左にアプリ、右に作業面 */
+  --bg: #f7f8fb;
+  --surface: #ffffff;
+  --ink: #1a1d24;
+  --muted: #5b6270;
+  --line: #d6dae3;
+  --accent: #0031d8;
+  --accent-soft: #e8edff;
+  --ok: #1a7f4b;
+  --warn: #9a5b00;
+  --warn-soft: #fff4e0;
+  --font-body: "Noto Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12141a; --surface: #1b1e26; --ink: #e8eaf0; --muted: #a2a9b8; --line: #343a47;
+    --accent: #8ea6ff; --accent-soft: #232c4d; --ok: #5cc98f; --warn: #f0b860; --warn-soft: #3a2d14;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12141a; --surface: #1b1e26; --ink: #e8eaf0; --muted: #a2a9b8; --line: #343a47;
+  --accent: #8ea6ff; --accent-soft: #232c4d; --ok: #5cc98f; --warn: #f0b860; --warn-soft: #3a2d14;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.7; }
+a { color: var(--accent); }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+h1, h2, h3 { text-wrap: balance; line-height: 1.4; margin: 0; }
+
+.top { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; padding: 12px 20px; background: var(--surface); border-bottom: 1px solid var(--line); }
+.top b { font-size: 18px; }
+.top small { color: var(--muted); }
+.top .badge { margin-left: auto; font-size: 12px; padding: 2px 10px; border-radius: 999px; background: var(--warn-soft); color: var(--warn); }
+
+.shell { display: grid; grid-template-columns: 230px 1fr; min-height: calc(100% - 52px); }
+nav { background: var(--surface); border-right: 1px solid var(--line); padding: 16px 0; }
+nav .group { font-size: 12px; font-weight: 700; color: var(--muted); padding: 12px 20px 4px; }
+nav a { display: block; padding: 7px 20px; color: var(--ink); text-decoration: none; border-left: 3px solid transparent; }
+nav a:hover { background: var(--accent-soft); }
+nav a[aria-current="page"] { border-left-color: var(--accent); background: var(--accent-soft); font-weight: 700; }
+nav .step { display: inline-block; width: 18px; color: var(--muted); font-size: 12px; }
+
+main { padding: 28px 32px 80px; max-width: 920px; width: 100%; display: flex; flex-direction: column; gap: 22px; }
+.crumb { color: var(--muted); font-size: 13px; }
+h1 { font-size: 24px; }
+h2 { font-size: 18px; }
+.lead { color: var(--muted); margin: 0; max-width: 62ch; }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; text-decoration: none; color: var(--ink); display: flex; flex-direction: column; gap: 4px; }
+.card:hover { border-color: var(--accent); }
+.card b { color: var(--accent); }
+.card span { color: var(--muted); font-size: 13px; }
+.card .num { font-size: 12px; color: var(--muted); }
+
+.deadline { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 8px; padding: 14px 18px; }
+.deadline .big { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.flow { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 13px; }
+.pill { padding: 2px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); }
+.pill.done { border-color: var(--ok); color: var(--ok); }
+.pill.now { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+
+details { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; }
+details + details { margin-top: -14px; }
+summary { cursor: pointer; font-weight: 500; }
+details p, details ul { margin: 8px 0 0; color: var(--muted); }
+
+form { display: flex; flex-direction: column; gap: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+label { font-weight: 700; display: flex; flex-direction: column; gap: 4px; }
+label .req { color: #c0001a; font-size: 12px; font-weight: 400; }
+label .hint { color: var(--muted); font-size: 13px; font-weight: 400; }
+input, select, textarea { border: 1px solid var(--muted); border-radius: 6px; padding: 8px 10px; background: var(--surface); font-weight: 400; }
+textarea { min-height: 84px; resize: vertical; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.btn { border: 0; border-radius: 6px; padding: 10px 28px; background: var(--accent); color: #fff; font-weight: 700; cursor: pointer; align-self: center; }
+:root[data-theme="dark"] .btn { color: #0b0f1f; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn { color: #0b0f1f; } }
+.btn.ghost { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+.btn:disabled { opacity: .5; cursor: wait; }
+
+.progress { display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--muted); }
+.progress .on { color: var(--ink); }
+.progress .ok { color: var(--ok); }
+
+.result { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; }
+.result h3 { font-size: 16px; padding-top: 6px; border-top: 1px solid var(--line); }
+.result h3:first-of-type { border-top: 0; padding-top: 0; }
+.result p, .result ul, .result ol { margin: 0; }
+.result li + li { margin-top: 4px; }
+.src { display: inline-block; font-size: 12px; padding: 0 8px; margin-left: 4px; border-radius: 4px; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
+.dummy { font-size: 12px; padding: 1px 8px; border-radius: 4px; background: var(--warn-soft); color: var(--warn); }
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: left; }
+td.n { text-align: right; font-variant-numeric: tabular-nums; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.chat { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+.msg { max-width: 85%; padding: 8px 12px; border-radius: 10px; }
+.msg.me { align-self: flex-end; background: var(--accent-soft); }
+.msg.ai { align-self: flex-start; border: 1px solid var(--line); }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip { border: 1px solid var(--accent); color: var(--accent); background: transparent; border-radius: 999px; padding: 3px 12px; font-size: 13px; cursor: pointer; }
+.chatform { display: flex; gap: 8px; }
+.chatform input { flex: 1; }
+.note { font-size: 13px; color: var(--muted); }
+
+.hist { display: flex; flex-direction: column; gap: 10px; }
+.hist .item { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.hist .item .done { font-size: 12px; background: var(--ok); color: #fff; border-radius: 4px; padding: 0 8px; }
+.hist .item time { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+
+#out { display: flex; flex-direction: column; gap: 16px; }
+[hidden] { display: none !important; }
+@media (max-width: 760px) {
+  .shell { grid-template-columns: 1fr; }
+  nav { border-right: 0; border-bottom: 1px solid var(--line); padding: 8px 0; }
+  main { padding: 20px 16px 60px; }
+  .row { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <b>議員AIエージェント</b><small>試作 · Powered by Fudoki</small>
+  <span class="badge">中身はすべてダミー出力です</span>
+</header>
+<div class="shell">
+  <nav aria-label="アプリ">
+    <a href="#home" data-nav="home">ホーム</a>
+    <div class="group">定例会の準備（順に使う）</div>
+    <a href="#research" data-nav="research"><span class="step">1</span>テーマの下調べ</a>
+    <a href="#draft" data-nav="draft"><span class="step">2</span>一般質問の素案</a>
+    <a href="#report" data-nav="report"><span class="step">3</span>議会報告の原稿</a>
+    <div class="group">調べもの</div>
+    <a href="#budget" data-nav="budget">予算・決算を調べる</a>
+    <a href="#minutes" data-nav="minutes">過去の質疑を探す</a>
+    <div class="group">記録</div>
+    <a href="#history" data-nav="history">実行履歴</a>
+  </nav>
+  <main id="view"></main>
+</div>
+
+<script>
+const $ = (s, el = document) => el.querySelector(s);
+const view = $('#view');
+const state = {
+  topic: '学校改築の財源',
+  city: '品川区',
+  history: [
+    { app: 'テーマの下調べ', title: '区立図書館の開館時間延長', time: '10/24 21:10' },
+  ],
+  done: { research: false, draft: false, report: false },
+};
+
+const APPS = {
+  research: {
+    title: 'テーマの下調べ',
+    purpose: '一般質問のテーマについて、過去の議会での質疑・区の予算と決算・他自治体の例をまとめ、執行部にまだ聞かれていない論点を探します。',
+    caution: ['出力は下書きです。数字と発言は必ず出典を開いて確かめてください。', '会議録は公開分のみを検索します。委員会の非公開部分は含みません。'],
+    example: 'テーマ「学校改築の財源」／観点「起債と基金取崩しをどう選んでいるか、将来の負担は誰が負うか」',
+    how: 'テーマと観点を書いて「実行」を押します。1分ほどでレポートが出ます。',
+    next: 'draft',
+  },
+  draft: {
+    title: '一般質問の素案',
+    purpose: '下調べの結果から、一般質問の通告文・質問の流れ・再質問の候補を作ります。想定される答弁も並べるので、詰め方を事前に考えられます。',
+    caution: ['通告の文言は議会事務局の様式に合わせて直してください。', '想定答弁は過去の答弁からの推測です。'],
+    example: '持ち時間「20分」／トーン「提案型」',
+    how: '下調べの結果を引き継いだ状態で開きます。持ち時間とトーンを選んで「実行」を押します。',
+    next: 'report',
+  },
+  report: {
+    title: '議会報告の原稿',
+    purpose: '質問と答弁をもとに、区政報告ビラ・SNS 向けの原稿を作ります。専門用語を区民向けに言い換えます。',
+    caution: ['答弁は確定した会議録で確認してから公開してください。'],
+    example: '媒体「区政報告ビラ（A4片面）」',
+    how: '媒体を選んで「実行」を押します。',
+    next: null,
+  },
+};
+
+const OUT = {
+  research: () => `
+    <h3>論点の要約</h3>
+    <p>${state.city}では学校改築が続いており、財源を<strong>区債（起債）</strong>で賄うか<strong>基金の取崩し</strong>で賄うかの判断基準が、予算書からは読み取れません。過去の質疑でも基準を問う質問は出ていますが、<strong>改築1校ごとの財源内訳と将来の返済額をセットで示すよう求めた質問</strong>は見当たりませんでした。</p>
+    <h3>過去の質疑 <span class="dummy">ダミー</span></h3>
+    <ul>
+      <li>予算特別委員会（令和8年）: ある委員が「起債と基金取崩しを選ぶ基準」を質問。答弁は「財政状況を総合的に勘案」にとどまる<span class="src">会議録 p.xx</span></li>
+      <li>決算特別委員会（令和6年度）: 減債基金の残高水準について質疑<span class="src">会議録 p.xx</span></li>
+      <li>一般質問（令和7年）: 改築計画の前倒しを求める質問。財源への言及なし<span class="src">会議録 p.xx</span></li>
+    </ul>
+    <h3>予算・決算の数字 <span class="dummy">ダミー</span></h3>
+    <div class="tablewrap"><table>
+      <thead><tr><th>項目</th><th>令和7年度</th><th>令和8年度</th><th>出典</th></tr></thead>
+      <tbody>
+        <tr><td>学校改築（施設整備費）</td><td class="n">○○億円</td><td class="n">○○億円</td><td><span class="src">予算書 教育費</span></td></tr>
+        <tr><td>うち区債</td><td class="n">○○億円</td><td class="n">○○億円</td><td><span class="src">予算書 区債</span></td></tr>
+        <tr><td>義務教育施設整備基金 取崩し</td><td class="n">○○億円</td><td class="n">○○億円</td><td><span class="src">予算書 繰入金</span></td></tr>
+      </tbody>
+    </table></div>
+    <h3>他自治体の例 <span class="dummy">ダミー</span></h3>
+    <ul>
+      <li>ある区では、改築校ごとに「起債・基金・国庫補助」の割合を一覧にして公表している<span class="src">区の公表資料</span></li>
+    </ul>
+    <h3>まだ聞かれていない論点（質問の候補）</h3>
+    <ol>
+      <li>改築1校あたりの財源内訳と、起債分の返済が何年度まで続くか</li>
+      <li>起債と基金取崩しを選ぶ基準を、文書で定めているか</li>
+      <li>今後10年の改築計画を、財源見通しと一緒に公表する考えはあるか</li>
+    </ol>`,
+  draft: () => `
+    <h3>通告文（案）</h3>
+    <p>学校改築の財源の選び方と、将来世代の負担の見える化について</p>
+    <h3>質問の流れ（持ち時間20分）</h3>
+    <ol>
+      <li>現状確認: 直近の改築校について、財源の内訳（区債・基金・国庫補助）を伺います。</li>
+      <li>基準: 起債と基金取崩しをどのような基準で選んでいるか、文書で定めているかを伺います。</li>
+      <li>提案: 今後10年の改築計画を財源見通しとあわせて公表し、区民と議会が負担を比べられるようにすべきと考えますが、見解を伺います。</li>
+    </ol>
+    <h3>想定される答弁と再質問 <span class="dummy">推測</span></h3>
+    <ul>
+      <li>答弁「財政状況を総合的に勘案して判断」→ 再質問「勘案する項目を具体的に挙げてください。基金残高の下限は設けていますか」</li>
+      <li>答弁「計画は改築の進捗に応じて公表」→ 再質問「他区では校ごとの財源割合を公表しています。区で出せない理由は何ですか」</li>
+    </ul>`,
+  report: () => `
+    <h3>見出し</h3>
+    <p><strong>学校の建て替え、そのお金は誰が払う？</strong></p>
+    <h3>本文（約300字）</h3>
+    <p>区立学校の建て替えが続いています。費用は区の借金（区債）か、これまでの積立金（基金）で払いますが、どちらを使うかで、将来の区民が負う返済額が変わります。○月の定例会で、学校ごとのお金の内訳と、借金と積立金を選ぶ基準を質問しました。区からは「○○」との答弁がありました。私は、今後10年の建て替え計画を、必要なお金の見通しと一緒に公表するよう求めています。</p>
+    <h3>図に入れる数字 <span class="dummy">ダミー</span></h3>
+    <ul><li>建て替え予定の学校数 ○校 ／ 区債の残高 ○○億円</li></ul>`,
+};
+
+const FOLLOW = {
+  research: [
+    ['他区の公表資料をもっと探して', 'ある区の公表例を3件追加しました（ダミー）。どれも「校ごとの財源割合」を一覧にしています。素案の提案部分の根拠に使えます。'],
+    ['論点2を深掘りして', '基準を文書で定めているかは、予算書・財政白書には出てきません。執行部が「定めていない」と答えれば、そこが提案の入口になります。事前に事務局を通じて資料要求する手もあります。'],
+    ['この論点は他の議員も聞いてる？', '過去4回の予算・決算委員会で、財源の選び方を聞いた委員は2人でした（ダミー）。校ごとの内訳まで求めた人はいません。'],
+  ],
+  draft: [
+    ['もっと短く（10分版）', '10分版では「現状確認」を省き、基準と提案の2問に絞ります。再質問は1回分だけ残します。'],
+    ['対決型にして', '提案の前に「基準が無いまま数十億円を選んでいるのでは」と問題提起する形に変えます。会派の方針と合うか確認してください。'],
+  ],
+  report: [
+    ['SNS 用に140字で', '学校の建て替え費用、借金と積立金のどちらで払うかで将来の負担が変わります。定例会で、学校ごとの内訳と選ぶ基準を質問しました。答弁と私の提案は区政報告で。'],
+  ],
+};
+
+function nav(id) {
+  document.querySelectorAll('[data-nav]').forEach(a => {
+    if (a.dataset.nav === id) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+  });
+}
+
+function home() {
+  const steps = ['research', 'draft', 'report'].map(k => {
+    const cls = state.done[k] ? 'done' : 'now';
+    return `<span class="pill ${cls}">${state.done[k] ? '✓ ' : ''}${APPS[k].title}</span>`;
+  }).join('<span aria-hidden="true">→</span>');
+  view.innerHTML = `
+    <h1>ホーム</h1>
+    <div class="deadline">
+      <div><div class="note">第4回定例会の通告締切まで（ダミーの日付）</div><div class="big">あと 12 日</div></div>
+      <div class="flow">${steps}</div>
+    </div>
+    <section>
+      <h2 style="margin-bottom:12px">定例会の準備</h2>
+      <div class="cards">
+        ${['research','draft','report'].map((k,i) => `<a class="card" href="#${k}"><span class="num">ステップ ${i+1}</span><b>${APPS[k].title}</b><span>${APPS[k].purpose.split('。')[0]}。</span></a>`).join('')}
+      </div>
+    </section>
+    <section>
+      <h2 style="margin-bottom:12px">調べもの</h2>
+      <div class="cards">
+        <a class="card" href="#budget"><b>予算・決算を調べる</b><span>事業ごとの金額を年度で比べる</span></a>
+        <a class="card" href="#minutes"><b>過去の質疑を探す</b><span>誰が何を聞き、どう答弁されたか</span></a>
+      </div>
+    </section>`;
+}
+
+function appPage(key) {
+  const a = APPS[key];
+  const fields = {
+    research: `
+      <div class="row">
+        <label for="f-city">自治体 <span class="req">※必須</span><input id="f-city" value="${state.city}"></label>
+        <label for="f-topic">テーマ <span class="req">※必須</span><input id="f-topic" value="${state.topic}"></label>
+      </div>
+      <label for="f-angle">観点 <span class="hint">何を確かめたいか、誰の立場で聞くか</span>
+        <textarea id="f-angle">起債と基金取崩しをどう選んでいるか。将来の負担は誰が負うのか。</textarea></label>`,
+    draft: `
+      <label for="f-from">元にする下調べ <select id="f-from"><option>${state.topic}（${state.done.research ? '今日の実行結果' : '未実行。ダミーで代用'}）</option></select></label>
+      <div class="row">
+        <label for="f-min">持ち時間 <select id="f-min"><option>20分</option><option>10分</option><option>30分</option></select></label>
+        <label for="f-tone">トーン <select id="f-tone"><option>提案型</option><option>確認型</option><option>対決型</option></select></label>
+      </div>`,
+    report: `
+      <label for="f-src">元にする質問 <select id="f-src"><option>${state.topic}（一般質問の素案）</option></select></label>
+      <label for="f-media">媒体 <select id="f-media"><option>区政報告ビラ（A4片面）</option><option>SNS</option><option>ブログ</option></select></label>`,
+  }[key];
+  view.innerHTML = `
+    <div class="crumb">定例会の準備 › ステップ ${Object.keys(APPS).indexOf(key)+1}</div>
+    <h1>${a.title}</h1>
+    <p class="lead">${a.purpose}</p>
+    <details><summary>アプリ個別の留意点</summary><ul>${a.caution.map(c => `<li>${c}</li>`).join('')}</ul></details>
+    <details><summary>入力例（初めて使うときは確認）</summary><p>${a.example}</p></details>
+    <details><summary>操作方法</summary><p>${a.how}</p></details>
+    <form id="f">${fields}<button class="btn" type="submit" id="run">実行</button></form>
+    <div id="out"></div>`;
+  $('#f').addEventListener('submit', e => { e.preventDefault(); run(key); });
+  if (state.done[key]) showResult(key, false);
+}
+
+function run(key) {
+  if (key === 'research') { state.topic = $('#f-topic').value || state.topic; state.city = $('#f-city').value || state.city; }
+  const btn = $('#run'); btn.disabled = true;
+  const steps = {
+    research: ['会議録を検索しています', '予算書・決算書と照合しています（Fudoki）', '他自治体の公表資料を探しています', 'レポートをまとめています'],
+    draft: ['下調べの論点を並べ替えています', '過去の答弁から想定答弁を作っています'],
+    report: ['区民向けの言葉に言い換えています'],
+  }[key];
+  const out = $('#out');
+  out.innerHTML = `<div class="progress">${steps.map((s,i) => `<div id="p${i}">○ ${s}</div>`).join('')}</div>`;
+  let i = 0;
+  const tick = () => {
+    if (i > 0) { const p = $('#p' + (i-1)); p.className = 'ok'; p.textContent = '✓ ' + steps[i-1]; }
+    if (i < steps.length) { const p = $('#p' + i); p.className = 'on'; p.textContent = '… ' + steps[i]; i++; setTimeout(tick, 550); }
+    else {
+      state.done[key] = true;
+      const d = new Date();
+      state.history.unshift({ app: APPS[key].title, title: state.topic, time: `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}` });
+      btn.disabled = false;
+      showResult(key, true);
+    }
+  };
+  tick();
+}
+
+function showResult(key) {
+  const a = APPS[key];
+  const out = $('#out');
+  out.innerHTML = `
+    <article class="result" aria-live="polite">
+      <div class="actions" style="justify-content:space-between;align-items:center">
+        <h2>結果: ${state.topic}</h2><span class="note">出典のラベルは試作では開けません</span>
+      </div>
+      ${OUT[key]()}
+      <div class="actions">
+        ${a.next ? `<a class="btn" href="#${a.next}" style="text-decoration:none">${APPS[a.next].title}へ引き継ぐ</a>` : ''}
+        <button class="btn ghost" type="button" id="copy">コピー</button>
+      </div>
+    </article>
+    <section class="chat" aria-label="結果について相談する">
+      <h2>この結果について続けて相談する</h2>
+      <p class="note">源内は「実行して終わり」ですが、ここではその場で詰められます。試作のため返答は定型です。</p>
+      <div id="log" style="display:flex;flex-direction:column;gap:10px"></div>
+      <div class="chips">${FOLLOW[key].map((f,i) => `<button class="chip" type="button" data-i="${i}">${f[0]}</button>`).join('')}</div>
+      <form class="chatform" id="cf" style="padding:0;border:0;background:none;flex-direction:row">
+        <label for="ci" style="position:absolute;left:-9999px">相談内容</label>
+        <input id="ci" placeholder="例: 論点3の根拠になる資料はある？">
+        <button class="btn" type="submit" style="padding:8px 18px">送る</button>
+      </form>
+    </section>`;
+  const log = $('#log');
+  const say = (q, r) => {
+    log.insertAdjacentHTML('beforeend', `<div class="msg me">${q}</div><div class="msg ai">${r}</div>`);
+  };
+  out.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => { const f = FOLLOW[key][c.dataset.i]; say(f[0], f[1]); }));
+  $('#cf').addEventListener('submit', e => {
+    e.preventDefault(); const v = $('#ci').value.trim(); if (!v) return;
+    say(v.replace(/</g, '&lt;'), '（試作のため定型の返答です）実際には、ここで会議録・予算データを再検索して、レポートの該当箇所を書き換えます。');
+    $('#ci').value = '';
+  });
+  $('#copy').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText($('.result').innerText); $('#copy').textContent = 'コピーしました'; }
+    catch { $('#copy').textContent = 'コピーできませんでした'; }
+  });
+}
+
+function simple(key) {
+  if (key === 'history') {
+    view.innerHTML = `<h1>実行履歴</h1><div class="hist">${state.history.map(h => `<div class="item"><span class="done">完了</span><time>${h.time}</time><b>${h.app}</b><span>${h.title}</span></div>`).join('')}</div>`;
+    return;
+  }
+  const t = key === 'budget'
+    ? ['予算・決算を調べる', '事業（目）単位の予算・決算額を年度で比べます。Fudoki のデータをそのまま使う想定です。']
+    : ['過去の質疑を探す', '会議録から、テーマごとに「誰が・いつ・何を聞き・どう答弁されたか」を一覧にします。'];
+  view.innerHTML = `<h1>${t[0]}</h1><p class="lead">${t[1]}</p><div class="result"><p class="note">この画面は試作の対象外です。下調べの中で同じ処理を使っています。</p><a class="btn" href="#research" style="text-decoration:none;align-self:flex-start">テーマの下調べを開く</a></div>`;
+}
+
+function route() {
+  const id = (location.hash || '#home').slice(1);
+  nav(id);
+  if (APPS[id]) appPage(id);
+  else if (id === 'history' || id === 'budget' || id === 'minutes') simple(id);
+  else { nav('home'); home(); }
+  window.scrollTo(0, 0);
+}
+window.addEventListener('hashchange', route);
+route();
+</script>
+</body>
+</html>
