@@ -211,8 +211,6 @@ tr.hl td { background: var(--accent-soft); }
     <button class="nav" data-go="kusei"><i data-lucide="newspaper" class="ico" aria-hidden="true"></i>区政報告 12月号<span class="dot">1</span></button>
     <button class="nav" data-go="tsuiseki"><i data-lucide="list-checks" class="ico" aria-hidden="true"></i>「検討します」の追跡<span class="dot">2</span></button>
     <button class="nav" data-go="ugoki"><i data-lucide="radar" class="ico" aria-hidden="true"></i>今週の動き</button>
-    <div class="navlabel">これまで</div>
-    <button class="nav" data-go="kusei" data-old="1"><i data-lucide="archive" class="ico" aria-hidden="true"></i>区政報告 9月号</button>
       </aside>
 
   <section class="main">
@@ -245,6 +243,7 @@ const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&
 const S = {
   headline: '学校の建て替え、借金と貯金のどちらで払う？',
   tsuisekiFilter: 'all',
+  edits: {},
 };
 
 const VIEWS = {
@@ -257,14 +256,14 @@ const VIEWS = {
       <div class="bubble"><span class="when">8:30</span>
         <p>おはようございます。週末のあいだに3つ進めておきました。</p>
         <button class="handoff" data-go="kusei"><div><b>区政報告 12月号の下書き</b><span>第3回定例会の一般質問と答弁から。紙面の原稿とSNSの投稿案</span></div><span class="go">開く<i data-lucide="chevron-right" aria-hidden="true"></i></span></button>
-        <button class="handoff" data-go="tsuiseki"><div><b>「検討します」答弁のその後</b><span>過去4年の12件のうち、2件に今年度の予算がつきました</span></div><span class="go">開く<i data-lucide="chevron-right" aria-hidden="true"></i></span></button>
+        <button class="handoff" data-go="tsuiseki"><div><b>「検討します」答弁のその後</b><span>過去4年の7件のうち、2件に今年度の予算がつきました</span></div><span class="go">開く<i data-lucide="chevron-right" aria-hidden="true"></i></span></button>
         <button class="handoff" data-go="ugoki"><div><b>今週の動き 4件</b><span>学校改築の入札不調、教育委員会の資料など</span></div><span class="go">開く<i data-lucide="chevron-right" aria-hidden="true"></i></span></button>
       </div>
       <div class="bubble mine"><span class="when">9:02</span><p>区政報告、写真は前回の駅前のやつでいい</p></div>
-      <div class="bubble"><span class="when">9:02</span><p>了解です。9月号で使った大井町駅前の写真を差し込みました。入稿は11/20（木）の想定なので、それまでに見出しだけ決めてください。</p></div>`,
+      <div class="bubble"><span class="when">9:02</span><p>了解です。9月号で使った大井町駅前の写真を差し込みました。入稿は11/20（金）の想定なので、それまでに見出しだけ決めてください。</p></div>`,
   },
   kusei: {
-    icon: 'newspaper', title: '区政報告 12月号', sub: '第3回定例会の一般質問から ・ 入稿 11/20（木）',
+    icon: 'newspaper', title: '区政報告 12月号', sub: '第3回定例会の一般質問から ・ 入稿 11/20（金）',
     ctx: '区政報告 12月号',
     sugg: ['見出しを短くして', '高齢の方向けにやさしく', 'X用に140字で'],
     render: () => `
@@ -293,11 +292,11 @@ function paperView() {
     <article class="sheet" aria-label="区政報告の紙面">
       <div class="mast"><b>やまだ通信</b><span>品川区議会議員 山田〇〇 ・ 2026年12月号 ・ No.48</span></div>
       <h2 contenteditable="true" id="headline">${esc(S.headline)}</h2>
-      <p contenteditable="true">区内では、今後15年で小中学校12校の建て替えが続きます。費用は1校あたり約60億円。区は、区債（借金）と基金（貯金）のどちらで払うかを、学校ごとに決めています。私は9月の議会で、その決め方の基準を質問しました。</p>
+      <p contenteditable="true" data-k="paper0">区内では、今後15年で小中学校12校の建て替えが続きます。費用は1校あたり約60億円。区は、区債（借金）と基金（貯金）のどちらで払うかを、学校ごとに決めています。私は9月の議会で、その決め方の基準を質問しました。</p>
       <h3>議会で聞いたこと</h3>
       <div class="qa">
-        <span class="tag q">質問</span><p contenteditable="true">借金と貯金の使い分けに、決まった基準はあるのか。将来の区民に負担を回しすぎていないか。</p>
-        <span class="tag a">区の答弁</span><p contenteditable="true">明文化した基準はない。財政の状況を見て判断している。今後、基準のあり方を検討する。</p>
+        <span class="tag q">質問</span><p contenteditable="true" data-k="paper1">借金と貯金の使い分けに、決まった基準はあるのか。将来の区民に負担を回しすぎていないか。</p>
+        <span class="tag a">区の答弁</span><p contenteditable="true" data-k="paper2">明文化した基準はない。財政の状況を見て判断している。今後、基準のあり方を検討する。</p>
       </div>
       <div class="figure">
         <span class="cap"><i data-lucide="chart-bar" aria-hidden="true"></i>学校改築に使ったお金の内訳（億円）</span>
@@ -306,7 +305,7 @@ function paperView() {
         <span class="cap">令和3〜7年度の決算から（風土記で集計した例）</span>
       </div>
       <h3>これから</h3>
-      <p contenteditable="true">「検討する」という答弁が、本当に基準になるまで追いかけます。来年2月の予算特別委員会で、進み具合を確かめます。</p>
+      <p contenteditable="true" data-k="paper3">「検討する」という答弁が、本当に基準になるまで追いかけます。来年2月の予算特別委員会で、進み具合を確かめます。</p>
     </article>
     <div class="panel">
       <div class="card"><h4><i data-lucide="notebook-pen" aria-hidden="true"></i>秘書のメモ</h4><ul><li>答弁は会議録（9/24）から要約しました</li><li>数字は決算書の例です。入稿前に担当課で確認を</li><li>文字数は紙面の8割ほど。写真1枚が入ります</li></ul></div>
@@ -314,8 +313,9 @@ function paperView() {
     </div>
   </div>`;
 }
+const X_POST = `9月の議会で、学校の建て替え費用を「借金と貯金のどちらで払うか」の基準を質問しました。\n区の答えは「明文化した基準はない。今後検討する」。\n15年で12校、1校60億円の話です。検討で終わらせないよう追いかけます。`;
 function snsView() {
-  const x = `9月の議会で、学校の建て替え費用を「借金と貯金のどちらで払うか」の基準を質問しました。\n区の答えは「明文化した基準はない。今後検討する」。\n15年で12校、1校60億円の話です。検討で終わらせないよう追いかけます。`;
+  const x = X_POST;
   const ig = `【区政報告 12月号】\n学校の建て替え、どう払う？\n\n品川区では今後15年で小中学校12校が建て替えの時期に。\n費用は1校あたり約60億円です。\n\n借金（区債）と貯金（基金）の使い分けに、決まった基準はありません。\n9月の議会でこれを質問しました。\n\n#品川区 #区政報告`;
   return `<div class="posts">
     ${post('X', x, 140)}
@@ -326,7 +326,7 @@ function snsView() {
 function post(name, text, limit) {
   const n = [...text].length;
   return `<article class="post"><header><div class="face" style="width:28px;height:28px;font-size:12px" aria-hidden="true">山</div><b>${name}</b><small>下書き</small></header>
-    <p contenteditable="true">${esc(text)}</p>
+    <p contenteditable="true" data-k="post-${name}">${esc(text)}</p>
     <footer><span class="meter">${limit ? `${n} / ${limit}字` : '紙面と同じ内容'}</span><button class="btn ghost" data-say="${name}の投稿を予約して"><i data-lucide="calendar-clock" aria-hidden="true"></i>予約する</button></footer></article>`;
 }
 
@@ -380,7 +380,9 @@ function render(name) {
   const v = VIEWS[name];
   $('#title').textContent = v.title;
   $('#sub').textContent = v.sub;
+  document.querySelectorAll('#view [data-k]').forEach(el => { S.edits[el.dataset.k] = el.innerHTML; });
   $('#view').innerHTML = v.render();
+  document.querySelectorAll('#view [data-k]').forEach(el => { if (el.dataset.k in S.edits) el.innerHTML = S.edits[el.dataset.k]; });
   const ctx = $('#ctx');
   ctx.hidden = !v.ctx;
   ctx.textContent = v.ctx ? `「${v.ctx}」を見ながら頼む` : '';
@@ -422,7 +424,7 @@ function reply(t) {
     if (current === 'kusei') { render('kusei'); $('#headline')?.classList.add('flash'); }
     return '見出しを「学校の建て替え、どう払う？」に縮めました。紙面に反映してあります。元に戻すときは言ってください。';
   }
-  if (/X用|140/.test(t)) { S.ktab = 'sns'; render('kusei'); return 'X用の投稿をSNS・HPのタブに出しました。いま118字です。'; }
+  if (/X用|140/.test(t)) { S.ktab = 'sns'; render('kusei'); return `X用の投稿をSNS・HPのタブに出しました。いま${[...X_POST].length}字です。`; }
   if (/予算がついた2件/.test(t)) return '図書館の開館時間延長と通学路の歩道拡幅を、紙面の「これから」の前に「実現したこと」として足す案を作ります。紙面が1割ほどはみ出すので、写真を小さくしてよいですか？';
   if (/再質問/.test(t)) return '「動きなし」の3件から、学校改築の財源の再質問を作ります。他区で基準を公表した例と、今回の入札不調をつなげる流れにします。5分ほどください。';
   if (/返信案/.test(t)) return '通学路の相談への返信案を作りました。歩道拡幅に今年度1億1,000万円がついたこと、着工時期は担当課に確認中であることを伝える内容です。送る前に一度見てください。';
@@ -432,7 +434,7 @@ function reply(t) {
 
 document.addEventListener('click', e => {
   const go = e.target.closest('[data-go]');
-  if (go) { if (go.dataset.old) S.ktab = 'paper'; location.hash = go.dataset.go; render(go.dataset.go); return; }
+  if (go) { if (location.hash === '#' + go.dataset.go) render(go.dataset.go); else location.hash = go.dataset.go; return; }
   const kt = e.target.closest('[data-ktab]');
   if (kt) { S.ktab = kt.dataset.ktab; render('kusei'); return; }
   const tf = e.target.closest('[data-tf]');
