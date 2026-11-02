@@ -422,10 +422,10 @@ function push(who, text, ctx) {
 function reply(t) {
   if (/見出し.*短/.test(t)) {
     S.headline = '学校の建て替え、どう払う？';
-    if (current === 'kusei') { render('kusei'); $('#headline')?.classList.add('flash'); }
+    render('kusei'); $('#headline')?.classList.add('flash');
     return '見出しを「学校の建て替え、どう払う？」に縮めました。紙面に反映してあります。元に戻すときは言ってください。';
   }
-  if (/X用|140/.test(t)) { S.ktab = 'sns'; render('kusei'); return `X用の投稿をSNS・HPのタブに出しました。いま${[...X_POST].length}字です。`; }
+  if (/X用|140/.test(t)) { S.ktab = 'sns'; render('kusei'); const draft = $('[data-k="post-X"]')?.innerText.replace(/\n$/, '') ?? X_POST; return `X用の投稿をSNS・HPのタブに出しました。いま${[...draft].length}字です。`; }
   if (/予算がついた2件/.test(t)) return '図書館の開館時間延長と通学路の歩道拡幅を、紙面の「これから」の前に「実現したこと」として足す案を作ります。紙面が1割ほどはみ出すので、写真を小さくしてよいですか？';
   if (/再質問/.test(t)) return '「動きなし」の3件から、学校改築の財源の再質問を作ります。他区で基準を公表した例と、今回の入札不調をつなげる流れにします。5分ほどください。';
   if (/返信案/.test(t)) return '通学路の相談への返信案を作りました。歩道拡幅に今年度1億1,000万円がついたこと、着工時期は担当課に確認中であることを伝える内容です。送る前に一度見てください。';
