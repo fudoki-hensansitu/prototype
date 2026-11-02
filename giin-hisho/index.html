@@ -422,6 +422,7 @@ function push(who, text, ctx) {
 function reply(t) {
   if (/見出し.*短/.test(t)) {
     S.headline = '学校の建て替え、どう払う？';
+    S.ktab = 'paper';
     render('kusei'); $('#headline')?.classList.add('flash');
     return '見出しを「学校の建て替え、どう払う？」に縮めました。紙面に反映してあります。元に戻すときは言ってください。';
   }
