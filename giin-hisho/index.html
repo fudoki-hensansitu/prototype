@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>議員のAI秘書</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Zen+Maru+Gothic:wght@500;700&family=Shippori+Mincho:wght@600;800&display=swap">
+<style>
+/* Layout: 左にサイドナビ（会話と仕事）、中央はその仕事に合った画面、下に常にチャット欄。送ると右に会話が開いて引き継ぐ */
+:root {
+  --bg: #f5f6f4;
+  --surface: #ffffff;
+  --sunk: #eceeea;
+  --ink: #1d2320;
+  --muted: #646b66;
+  --line: #dcdfda;
+  --accent: #2c4a86;      /* 藍 */
+  --accent-soft: #e6ebf5;
+  --shu: #b9452c;         /* 朱: 注意・新着 */
+  --ok: #2f7a4f;
+  --ok-soft: #e3f1e8;
+  --warn: #8a5a00;
+  --warn-soft: #f8eed8;
+  --paper: #fffdf8;
+  --f-body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", sans-serif;
+  --f-voice: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Zen Kaku Gothic New", sans-serif;
+  --f-print: "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15181a; --surface: #1d2124; --sunk: #24292c; --ink: #e6e9e7; --muted: #a0a8a3; --line: #343a3d;
+    --accent: #9db4ec; --accent-soft: #263150; --shu: #ec8b73; --ok: #79c99a; --ok-soft: #1f3528;
+    --warn: #e7bb64; --warn-soft: #3a2f17; --paper: #23272a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #15181a; --surface: #1d2124; --sunk: #24292c; --ink: #e6e9e7; --muted: #a0a8a3; --line: #343a3d;
+  --accent: #9db4ec; --accent-soft: #263150; --shu: #ec8b73; --ok: #79c99a; --ok-soft: #1f3528;
+  --warn: #e7bb64; --warn-soft: #3a2f17; --paper: #23272a; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.75; }
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+h1, h2, h3 { text-wrap: balance; line-height: 1.4; margin: 0; }
+p { margin: 0; }
+
+.app { height: 100%; display: grid; grid-template-columns: 248px minmax(0, 1fr) auto; }
+
+/* side nav */
+.side { background: var(--surface); border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; padding: 16px 12px; overflow-y: auto; }
+.me { display: flex; align-items: center; gap: 10px; padding: 4px 8px 14px; }
+.face { width: 36px; height: 36px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-family: var(--f-voice); font-weight: 700; flex: none; }
+.me b { font-family: var(--f-voice); display: block; line-height: 1.3; }
+.me small { color: var(--muted); font-size: 12px; }
+.navlabel { font-size: 11px; letter-spacing: .08em; color: var(--muted); padding: 14px 10px 4px; }
+.nav { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; border: 0; background: transparent; padding: 8px 10px; border-radius: 10px; }
+.nav:hover { background: var(--sunk); }
+.nav[aria-current="page"] { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+.nav .dot { margin-left: auto; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: var(--shu); color: var(--surface); font-size: 11px; display: grid; place-items: center; font-weight: 700; }
+.nav .ico, .nav svg { width: 18px; height: 18px; flex: none; color: var(--muted); }
+svg.lucide { width: 1.1em; height: 1.1em; vertical-align: -0.15em; flex: none; }
+.send svg, .close svg { width: 18px; height: 18px; vertical-align: middle; }
+.btn, .go, .card h4, .figure .cap, .item time { display: inline-flex; align-items: center; gap: 6px; }
+.item time { align-self: start; }
+.nav[aria-current="page"] .ico, .nav[aria-current="page"] svg { color: var(--accent); }
+
+/* main */
+.main { display: flex; flex-direction: column; min-width: 0; height: 100%; }
+.mainhead { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-block: 14px; padding-left: max(24px, env(safe-area-inset-left, 0px)); padding-right: max(24px, env(safe-area-inset-right, 0px)); border-bottom: 1px solid var(--line); background: var(--surface); }
+.mainhead h1 { font-size: 18px; }
+.mainhead .sub { color: var(--muted); font-size: 13px; }
+.sample { margin-left: auto; font-size: 12px; padding: 2px 10px; border-radius: 999px; background: var(--warn-soft); color: var(--warn); }
+.mobilenav { display: none; }
+.scroll { flex: 1; overflow-y: auto; padding-block: 24px 24px; padding-left: max(24px, env(safe-area-inset-left, 0px)); padding-right: max(24px, env(safe-area-inset-right, 0px)); }
+.view { max-width: 920px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+
+/* composer: 常に下にある */
+.composer { padding-block: 12px 16px; padding-left: max(24px, env(safe-area-inset-left, 0px)); padding-right: max(24px, env(safe-area-inset-right, 0px)); background: linear-gradient(to top, var(--bg) 70%, transparent); }
+.composer form { max-width: 920px; margin: 0 auto; display: flex; flex-direction: column; gap: 8px; }
+.ctx { align-self: flex-start; font-size: 12px; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: 2px 10px; }
+.box { display: flex; gap: 8px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 6px 6px 6px 16px; box-shadow: 0 4px 18px rgb(0 0 0 / .05); }
+.box input { flex: 1; min-width: 0; border: 0; background: transparent; padding: 8px 0; outline: none; }
+.send { width: 38px; height: 38px; border-radius: 50%; border: 0; background: var(--accent); color: var(--surface); font-weight: 700; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 3px 12px; font-size: 13px; color: var(--ink); }
+.chip:hover { border-color: var(--accent); color: var(--accent); }
+
+/* home: 会話 */
+.bubble { font-family: var(--f-voice); background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 16px 20px; max-width: 680px; display: flex; flex-direction: column; gap: 10px; }
+.bubble.mine { align-self: flex-end; background: var(--accent-soft); border-color: transparent; font-family: var(--f-body); }
+.bubble .when { font-size: 12px; color: var(--muted); font-family: var(--f-body); }
+.handoff { display: flex; align-items: center; gap: 12px; border: 1px dashed var(--line); border-radius: 12px; padding: 10px 14px; background: var(--bg); font-family: var(--f-body); text-align: left; width: 100%; }
+.handoff:hover { border-color: var(--accent); }
+.handoff b { display: block; font-size: 14px; }
+.handoff span { font-size: 12px; color: var(--muted); }
+.handoff .go { margin-left: auto; color: var(--accent); font-size: 13px; white-space: nowrap; }
+.stamp { text-align: center; font-size: 12px; color: var(--muted); }
+
+/* 区政報告 */
+.tabs { display: flex; gap: 4px; background: var(--sunk); padding: 4px; border-radius: 12px; align-self: flex-start; }
+.tab { border: 0; background: transparent; padding: 6px 16px; border-radius: 9px; font-size: 14px; }
+.tab[aria-selected="true"] { background: var(--surface); font-weight: 700; box-shadow: 0 1px 3px rgb(0 0 0 / .08); }
+.issue { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 20px; align-items: start; }
+.sheet { background: var(--paper); border: 1px solid var(--line); box-shadow: 0 10px 30px rgb(0 0 0 / .06); padding: 32px 36px; font-family: var(--f-print); display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.mast { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; border-bottom: 3px double var(--ink); padding-bottom: 8px; }
+.mast b { font-size: 22px; letter-spacing: .1em; }
+.mast span { font-family: var(--f-body); font-size: 12px; color: var(--muted); }
+.sheet h2 { font-size: 26px; font-weight: 800; line-height: 1.45; }
+.sheet h3 { font-size: 17px; font-weight: 800; border-left: 4px solid var(--accent); padding-left: 10px; }
+.sheet p { font-size: 15px; line-height: 1.95; }
+.qa { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 12px; }
+.qa .tag { font-family: var(--f-body); font-size: 12px; font-weight: 700; padding: 1px 8px; border-radius: 4px; height: fit-content; margin-top: 4px; }
+.qa .q { background: var(--accent-soft); color: var(--accent); }
+.qa .a { background: var(--sunk); color: var(--muted); }
+.figure { font-family: var(--f-body); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; background: var(--surface); }
+.figure .cap { font-size: 12px; color: var(--muted); }
+.bar { display: grid; grid-template-columns: 5.5em minmax(0, 1fr) 5em; gap: 8px; align-items: center; font-size: 13px; }
+.bar i { display: block; height: 12px; border-radius: 3px; background: var(--accent); }
+.bar.b2 i { background: var(--shu); }
+.bar em { font-style: normal; text-align: right; font-variant-numeric: tabular-nums; }
+[contenteditable]:hover { background: var(--accent-soft); }
+[contenteditable]:focus { outline: 2px dashed var(--accent); outline-offset: 3px; background: transparent; }
+.flash { animation: flash 1.2s ease; }
+@keyframes flash { 0% { background: var(--warn-soft); } 100% { background: transparent; } }
+.panel { display: flex; flex-direction: column; gap: 12px; position: sticky; top: 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+.card h4 { margin: 0; font-size: 13px; }
+.card ul { margin: 0; padding-left: 1.2em; color: var(--muted); }
+.btn { border: 0; border-radius: 10px; padding: 8px 14px; background: var(--accent); color: var(--surface); font-weight: 700; font-size: 13px; }
+.btn.ghost { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+.meter { font-variant-numeric: tabular-nums; }
+
+/* SNS */
+.posts { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.post { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.post header { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.post header small { color: var(--muted); margin-left: auto; }
+.post p { white-space: pre-wrap; font-size: 14px; }
+.post footer { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--muted); }
+
+/* 追跡表 */
+.filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.tablewrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 680px; }
+th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 500; padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--sunk); }
+td { padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td .quote { color: var(--muted); font-size: 13px; }
+.st { display: inline-block; font-size: 12px; font-weight: 700; padding: 1px 10px; border-radius: 999px; white-space: nowrap; }
+.st.ok { background: var(--ok-soft); color: var(--ok); }
+.st.wip { background: var(--warn-soft); color: var(--warn); }
+.st.none { background: var(--sunk); color: var(--muted); }
+.st.new { background: var(--shu); color: var(--surface); }
+.summary { display: flex; gap: 10px; flex-wrap: wrap; }
+.summary div { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; min-width: 120px; }
+.summary b { font-size: 22px; font-variant-numeric: tabular-nums; display: block; line-height: 1.3; }
+.summary span { font-size: 12px; color: var(--muted); }
+tr.hl td { background: var(--accent-soft); }
+
+/* 今週の動き */
+.feed { display: flex; flex-direction: column; gap: 10px; }
+.item { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; grid-template-columns: 70px minmax(0, 1fr); gap: 12px; }
+.item time { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.item .src { font-size: 12px; color: var(--muted); }
+.item .why { font-family: var(--f-voice); font-size: 13px; color: var(--accent); }
+.item .acts { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* 右の会話パネル */
+.chat { width: 380px; border-left: 1px solid var(--line); background: var(--surface); display: flex; flex-direction: column; height: 100%; }
+.chat[hidden] { display: none !important; }
+.chathead { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+.chathead b { font-family: var(--f-voice); }
+.chathead small { display: block; color: var(--muted); font-size: 12px; }
+.close { margin-left: auto; border: 0; background: var(--sunk); border-radius: 50%; width: 32px; height: 32px; }
+.log { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.msg { max-width: 90%; padding: 9px 14px; border-radius: 16px; font-size: 14px; }
+.msg.me { align-self: flex-end; background: var(--accent-soft); }
+.msg.ai { align-self: flex-start; background: var(--sunk); font-family: var(--f-voice); }
+.msg.sys { align-self: center; font-size: 12px; color: var(--muted); background: transparent; padding: 0; }
+.chatin { padding: 12px 16px calc(14px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--line); }
+
+@media (max-width: 1100px) {
+  .issue { grid-template-columns: minmax(0, 1fr); }
+  .panel { position: static; }
+  .chat { position: fixed; inset: 0 0 0 auto; width: min(380px, 100%); z-index: 20; box-shadow: -10px 0 30px rgb(0 0 0 / .12); padding-top: env(safe-area-inset-top, 0px); padding-right: env(safe-area-inset-right, 0px); }
+}
+@media (max-width: 760px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .side { display: none; }
+  .mobilenav { display: flex; gap: 6px; overflow-x: auto; width: 100%; }
+  .mobilenav .nav { width: auto; white-space: nowrap; flex: none; }
+  .mainhead, .scroll, .composer { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .sheet { padding: 20px 18px; }
+  .sheet h2 { font-size: 21px; }
+  .item { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+}
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="side" aria-label="ナビゲーション">
+    <div class="me"><div class="face" aria-hidden="true">秘</div><div><b>秘書</b><small>山田議員事務所</small></div></div>
+    <button class="nav" data-go="home"><i data-lucide="message-circle" class="ico" aria-hidden="true"></i>メインチャット<span class="dot">3</span></button>
+    <div class="navlabel">仕事</div>
+    <button class="nav" data-go="kusei"><i data-lucide="newspaper" class="ico" aria-hidden="true"></i>区政報告 12月号<span class="dot">1</span></button>
+    <button class="nav" data-go="tsuiseki"><i data-lucide="list-checks" class="ico" aria-hidden="true"></i>「検討します」の追跡<span class="dot">2</span></button>
+    <button class="nav" data-go="ugoki"><i data-lucide="radar" class="ico" aria-hidden="true"></i>今週の動き</button>
+    <div class="navlabel">これまで</div>
+    <button class="nav" data-go="kusei" data-old="1"><i data-lucide="archive" class="ico" aria-hidden="true"></i>区政報告 9月号</button>
+      </aside>
+
+  <section class="main">
+    <header class="mainhead">
+      <div class="mobilenav" id="mobilenav"></div>
+      <div><h1 id="title">メインチャット</h1><div class="sub" id="sub"></div></div>
+    </header>
+    <div class="scroll" id="scroll"><div class="view" id="view"></div></div>
+    <div class="composer">
+      <form id="composer">
+        <span class="ctx" id="ctx" hidden></span>
+        <div class="chips" id="sugg"></div>
+        <div class="box"><input id="ask" autocomplete="off" placeholder="秘書に頼む"><button class="send" aria-label="送る"><i data-lucide="arrow-up" aria-hidden="true"></i></button></div>
+      </form>
+    </div>
+  </section>
+
+  <aside class="chat" id="chat" hidden aria-label="秘書との会話">
+    <div class="chathead"><div class="face" aria-hidden="true">秘</div><div><b>秘書</b><small id="chatctx"></small></div><button class="close" id="close" aria-label="会話を閉じる"><i data-lucide="x" aria-hidden="true"></i></button></div>
+    <div class="log" id="log"></div>
+    <form class="chatin" id="chatform"><div class="box"><input id="ask2" autocomplete="off" placeholder="続けて頼む"><button class="send" aria-label="送る"><i data-lucide="arrow-up" aria-hidden="true"></i></button></div></form>
+  </aside>
+</div>
+
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<script>
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+const S = {
+  headline: '学校の建て替え、借金と貯金のどちらで払う？',
+  tsuisekiFilter: 'all',
+};
+
+const VIEWS = {
+  home: {
+    icon: 'message-circle', title: 'メインチャット', sub: '秘書からの報告と、頼んだこと',
+    ctx: null,
+    sugg: ['今週やることを教えて', '区政報告を短くして', '次の一般質問のテーマ案を3つ'],
+    render: () => `
+      <div class="stamp">11月2日（月）</div>
+      <div class="bubble"><span class="when">8:30</span>
+        <p>おはようございます。週末のあいだに3つ進めておきました。</p>
+        <button class="handoff" data-go="kusei"><div><b>区政報告 12月号の下書き</b><span>第3回定例会の一般質問と答弁から。紙面の原稿とSNSの投稿案</span></div><span class="go">開く<i data-lucide="chevron-right" aria-hidden="true"></i></span></button>
+        <button class="handoff" data-go="tsuiseki"><div><b>「検討します」答弁のその後</b><span>過去4年の12件のうち、2件に今年度の予算がつきました</span></div><span class="go">開く<i data-lucide="chevron-right" aria-hidden="true"></i></span></button>
+        <button class="handoff" data-go="ugoki"><div><b>今週の動き 4件</b><span>学校改築の入札不調、教育委員会の資料など</span></div><span class="go">開く<i data-lucide="chevron-right" aria-hidden="true"></i></span></button>
+      </div>
+      <div class="bubble mine"><span class="when">9:02</span><p>区政報告、写真は前回の駅前のやつでいい</p></div>
+      <div class="bubble"><span class="when">9:02</span><p>了解です。9月号で使った大井町駅前の写真を差し込みました。入稿は11/20（木）の想定なので、それまでに見出しだけ決めてください。</p></div>`,
+  },
+  kusei: {
+    icon: 'newspaper', title: '区政報告 12月号', sub: '第3回定例会の一般質問から ・ 入稿 11/20（木）',
+    ctx: '区政報告 12月号',
+    sugg: ['見出しを短くして', '高齢の方向けにやさしく', 'X用に140字で'],
+    render: () => `
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" aria-selected="${S.ktab !== 'sns'}" data-ktab="paper">紙面</button>
+        <button class="tab" role="tab" aria-selected="${S.ktab === 'sns'}" data-ktab="sns">SNS・HP</button>
+      </div>
+      ${S.ktab === 'sns' ? snsView() : paperView()}`,
+  },
+  tsuiseki: {
+    icon: 'list-checks', title: '「検討します」の追跡', sub: '過去4年の一般質問で、区が「検討する」「研究する」と答えたもの',
+    ctx: '「検討します」の追跡',
+    sugg: ['予算がついた2件を区政報告に入れて', '動きなしの件で再質問を作って', '他区の例も調べて'],
+    render: () => trackView(),
+  },
+  ugoki: {
+    icon: 'radar', title: '今週の動き', sub: '山田議員が追っているテーマについて、区の発表・委員会資料・報道から',
+    ctx: '今週の動き',
+    sugg: ['入札不調の件を詳しく', '委員会で聞くべきことは？', '区民向けに一言で'],
+    render: () => feedView(),
+  },
+};
+
+function paperView() {
+  return `<div class="issue">
+    <article class="sheet" aria-label="区政報告の紙面">
+      <div class="mast"><b>やまだ通信</b><span>品川区議会議員 山田〇〇 ・ 2026年12月号 ・ No.48</span></div>
+      <h2 contenteditable="true" id="headline">${esc(S.headline)}</h2>
+      <p contenteditable="true">区内では、今後15年で小中学校12校の建て替えが続きます。費用は1校あたり約60億円。区は、区債（借金）と基金（貯金）のどちらで払うかを、学校ごとに決めています。私は9月の議会で、その決め方の基準を質問しました。</p>
+      <h3>議会で聞いたこと</h3>
+      <div class="qa">
+        <span class="tag q">質問</span><p contenteditable="true">借金と貯金の使い分けに、決まった基準はあるのか。将来の区民に負担を回しすぎていないか。</p>
+        <span class="tag a">区の答弁</span><p contenteditable="true">明文化した基準はない。財政の状況を見て判断している。今後、基準のあり方を検討する。</p>
+      </div>
+      <div class="figure">
+        <span class="cap"><i data-lucide="chart-bar" aria-hidden="true"></i>学校改築に使ったお金の内訳（億円）</span>
+        <div class="bar"><span>区債</span><i style="width:62%"></i><em>148億円</em></div>
+        <div class="bar b2"><span>基金の取崩し</span><i style="width:38%"></i><em>91億円</em></div>
+        <span class="cap">令和3〜7年度の決算から（風土記で集計した例）</span>
+      </div>
+      <h3>これから</h3>
+      <p contenteditable="true">「検討する」という答弁が、本当に基準になるまで追いかけます。来年2月の予算特別委員会で、進み具合を確かめます。</p>
+    </article>
+    <div class="panel">
+      <div class="card"><h4><i data-lucide="notebook-pen" aria-hidden="true"></i>秘書のメモ</h4><ul><li>答弁は会議録（9/24）から要約しました</li><li>数字は決算書の例です。入稿前に担当課で確認を</li><li>文字数は紙面の8割ほど。写真1枚が入ります</li></ul></div>
+      <div class="card"><h4><i data-lucide="calendar-check" aria-hidden="true"></i>入稿まで</h4><ul><li>見出しを決める（あと18日）</li><li>写真：9月号の駅前を使用</li><li>印刷会社へ PDF を送る</li></ul><button class="btn" data-say="入稿用のPDFにして"><i data-lucide="file-down" aria-hidden="true"></i>入稿用にまとめる</button></div>
+    </div>
+  </div>`;
+}
+function snsView() {
+  const x = `9月の議会で、学校の建て替え費用を「借金と貯金のどちらで払うか」の基準を質問しました。\n区の答えは「明文化した基準はない。今後検討する」。\n15年で12校、1校60億円の話です。検討で終わらせないよう追いかけます。`;
+  const ig = `【区政報告 12月号】\n学校の建て替え、どう払う？\n\n品川区では今後15年で小中学校12校が建て替えの時期に。\n費用は1校あたり約60億円です。\n\n借金（区債）と貯金（基金）の使い分けに、決まった基準はありません。\n9月の議会でこれを質問しました。\n\n#品川区 #区政報告`;
+  return `<div class="posts">
+    ${post('X', x, 140)}
+    ${post('Instagram', ig, 2200)}
+    ${post('HP（ブログ）', '紙面の全文をそのまま掲載し、会議録へのリンクを付けます。新聞折込が届かない方にも読んでもらえます。', null)}
+  </div>`;
+}
+function post(name, text, limit) {
+  const n = [...text].length;
+  return `<article class="post"><header><div class="face" style="width:28px;height:28px;font-size:12px" aria-hidden="true">山</div><b>${name}</b><small>下書き</small></header>
+    <p contenteditable="true">${esc(text)}</p>
+    <footer><span class="meter">${limit ? `${n} / ${limit}字` : '紙面と同じ内容'}</span><button class="btn ghost" data-say="${name}の投稿を予約して"><i data-lucide="calendar-clock" aria-hidden="true"></i>予約する</button></footer></article>`;
+}
+
+const TRACK = [
+  { y: 'R4.9', theme: '学校改築の財源の基準', a: '基準のあり方を検討する', st: 'none', money: '—' },
+  { y: 'R5.2', theme: '区立図書館の開館時間延長', a: '利用状況を見て検討する', st: 'ok', money: '3,200万円', fresh: true },
+  { y: 'R5.6', theme: '通学路の歩道拡幅（大井1丁目）', a: '警察と協議し検討する', st: 'ok', money: '1億1,000万円', fresh: true },
+  { y: 'R5.9', theme: '公共施設の使用料の見直し', a: '他区の状況を研究する', st: 'wip', money: '調査委託 400万円' },
+  { y: 'R6.2', theme: '区債の繰上償還', a: '金利動向を見て検討する', st: 'none', money: '—' },
+  { y: 'R6.9', theme: '事務事業評価の公開範囲', a: '公開方法を検討する', st: 'wip', money: '—' },
+  { y: 'R7.6', theme: '新庁舎の建設費の上振れ', a: '設計の見直しを検討する', st: 'none', money: '—' },
+];
+function trackView() {
+  const f = S.tsuisekiFilter;
+  const rows = TRACK.filter(r => f === 'all' || r.st === f);
+  const label = { ok: '予算がついた', wip: '動きあり', none: '動きなし' };
+  const c = k => TRACK.filter(r => r.st === k).length;
+  return `
+    <div class="summary">
+      <div><b>${c('ok')}</b><span>予算がついた</span></div>
+      <div><b>${c('wip')}</b><span>動きあり</span></div>
+      <div><b>${c('none')}</b><span>動きなし</span></div>
+    </div>
+    <div class="filters" role="group" aria-label="絞り込み">
+      ${[['all', 'すべて'], ['ok', '予算がついた'], ['wip', '動きあり'], ['none', '動きなし']].map(([k, l]) => `<button class="chip" data-tf="${k}" style="${f === k ? 'border-color:var(--accent);color:var(--accent);font-weight:700' : ''}">${l}</button>`).join('')}
+    </div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>質問した時期</th><th>テーマ／区の答弁</th><th>いまの状態</th><th style="text-align:right">今年度の予算</th></tr></thead>
+      <tbody>${rows.map(r => `<tr class="${r.fresh ? 'hl' : ''}"><td>${r.y}</td><td><b>${r.theme}</b><div class="quote">「${r.a}」</div></td><td><span class="st ${r.st}">${label[r.st]}</span> ${r.fresh ? '<span class="st new">新着</span>' : ''}</td><td class="n">${r.money}</td></tr>`).join('')}</tbody>
+    </table></div>
+    <p style="font-size:13px;color:var(--muted)">予算は風土記の事業別データ（令和8年度当初予算）と照らし合わせています。</p>`;
+}
+
+const FEED = [
+  { d: '11/1', ic: 'gavel', t: '区立第二中学校の改築工事、入札が不調に', s: '区の入札結果（11/1公表）', why: '9月に質問した「学校改築の財源」に直結します', acts: ['区政報告に1行足す', '委員会で聞くことを作る'] },
+  { d: '10/30', ic: 'file-text', t: '文教委員会の資料に「改築の優先順位の見直し」', s: '文教委員会 10/30 資料3', why: '答弁の「検討する」が動き出した可能性があります', acts: ['資料を要約する'] },
+  { d: '10/29', ic: 'building-2', t: '他区で学校改築の財源ルールを公表（例：〇〇区）', s: '〇〇区の報道発表', why: '再質問で「他区はできている」と言えます', acts: ['比べる表を作る'] },
+  { d: '10/28', ic: 'mail', t: '区民の方から通学路の相談メール（大井1丁目）', s: '事務所のメール', why: '追跡中の「歩道拡幅」と同じ場所です', acts: ['返信案を作る'] },
+];
+function feedView() {
+  return `<div class="feed">${FEED.map(i => `<article class="item"><time><i data-lucide="${i.ic}" aria-hidden="true"></i>${i.d}</time><div style="display:flex;flex-direction:column;gap:6px;min-width:0">
+    <b>${i.t}</b><span class="src">${i.s}</span><span class="why">${i.why}</span>
+    <div class="acts">${i.acts.map(a => `<button class="chip" data-say="${a}（${i.t}）">${a}</button>`).join('')}</div></div></article>`).join('')}</div>`;
+}
+
+function paintIcons() { try { window.lucide && lucide.createIcons({ attrs: { 'stroke-width': 1.8 } }); } catch (e) {} }
+let current = 'home';
+function render(name) {
+  if (!VIEWS[name]) name = 'home';
+  current = name;
+  const v = VIEWS[name];
+  $('#title').textContent = v.title;
+  $('#sub').textContent = v.sub;
+  $('#view').innerHTML = v.render();
+  const ctx = $('#ctx');
+  ctx.hidden = !v.ctx;
+  ctx.textContent = v.ctx ? `「${v.ctx}」を見ながら頼む` : '';
+  $('#ask').placeholder = v.ctx ? `${v.ctx}について、秘書に頼む` : '秘書に頼む';
+  $('#sugg').innerHTML = v.sugg.map(s => `<button type="button" class="chip" data-say="${s}">${s}</button>`).join('');
+  document.querySelectorAll('.nav[data-go]').forEach(b => b.setAttribute('aria-current', b.dataset.go === name && !b.dataset.old ? 'page' : 'false'));
+  $('#mobilenav').innerHTML = ['home', 'kusei', 'tsuiseki', 'ugoki'].map(k => `<button class="nav" data-go="${k}" aria-current="${k === name ? 'page' : 'false'}"><i data-lucide="${VIEWS[k].icon}" class="ico" aria-hidden="true"></i>${VIEWS[k].title}</button>`).join('');
+  paintIcons();
+  $('#scroll').scrollTop = 0;
+  paintIcons();
+}
+
+/* チャットへの引き継ぎ */
+const log = [];
+function openChat() {
+  $('#chat').hidden = false;
+  const v = VIEWS[current];
+  $('#chatctx').textContent = v.ctx ? `「${v.ctx}」の続きで話しています` : 'メインチャット';
+}
+function say(text) {
+  if (!text.trim()) return;
+  openChat();
+  const v = VIEWS[current];
+  if (v.ctx && log.at(-1)?.ctx !== v.ctx) push('sys', `「${v.ctx}」の画面から引き継ぎました`, v.ctx);
+  push('me', text, v.ctx);
+  setTimeout(() => push('ai', reply(text), v.ctx), 450);
+}
+function push(who, text, ctx) {
+  log.push({ who, text, ctx });
+  const el = document.createElement('div');
+  el.className = `msg ${who}`;
+  el.textContent = text;
+  $('#log').append(el);
+  $('#log').scrollTop = $('#log').scrollHeight;
+}
+function reply(t) {
+  if (/見出し.*短/.test(t)) {
+    S.headline = '学校の建て替え、どう払う？';
+    if (current === 'kusei') { render('kusei'); $('#headline')?.classList.add('flash'); }
+    return '見出しを「学校の建て替え、どう払う？」に縮めました。紙面に反映してあります。元に戻すときは言ってください。';
+  }
+  if (/X用|140/.test(t)) { S.ktab = 'sns'; render('kusei'); return 'X用の投稿をSNS・HPのタブに出しました。いま118字です。'; }
+  if (/予算がついた2件/.test(t)) return '図書館の開館時間延長と通学路の歩道拡幅を、紙面の「これから」の前に「実現したこと」として足す案を作ります。紙面が1割ほどはみ出すので、写真を小さくしてよいですか？';
+  if (/再質問/.test(t)) return '「動きなし」の3件から、学校改築の財源の再質問を作ります。他区で基準を公表した例と、今回の入札不調をつなげる流れにします。5分ほどください。';
+  if (/返信案/.test(t)) return '通学路の相談への返信案を作りました。歩道拡幅に今年度1億1,000万円がついたこと、着工時期は担当課に確認中であることを伝える内容です。送る前に一度見てください。';
+  if (/今週やること/.test(t)) return '今週は3つです。区政報告の見出しを決める（入稿11/20）、入札不調の件で文教委員会の質問を用意する、通学路の相談に返信する。どれから片付けますか？';
+  return '承知しました。進めて、できたらこの会話と左の一覧でお知らせします。';
+}
+
+document.addEventListener('click', e => {
+  const go = e.target.closest('[data-go]');
+  if (go) { if (go.dataset.old) S.ktab = 'paper'; location.hash = go.dataset.go; render(go.dataset.go); return; }
+  const kt = e.target.closest('[data-ktab]');
+  if (kt) { S.ktab = kt.dataset.ktab; render('kusei'); return; }
+  const tf = e.target.closest('[data-tf]');
+  if (tf) { S.tsuisekiFilter = tf.dataset.tf; render('tsuiseki'); return; }
+  const s = e.target.closest('[data-say]');
+  if (s) { say(s.dataset.say); return; }
+});
+$('#composer').addEventListener('submit', e => { e.preventDefault(); say($('#ask').value); $('#ask').value = ''; });
+$('#chatform').addEventListener('submit', e => { e.preventDefault(); say($('#ask2').value); $('#ask2').value = ''; });
+$('#close').addEventListener('click', () => { $('#chat').hidden = true; });
+document.addEventListener('input', e => { if (e.target.id === 'headline') S.headline = e.target.textContent; });
+window.addEventListener('hashchange', () => render(location.hash.slice(1)));
+render(location.hash.slice(1) || 'home');
+</script>
+</body>
+</html>
