@@ -41,6 +41,6 @@ curl -fsS https://prototype.fudoki.dev/__void/ready
 - `prototype /__void/ready`（domain `prototype.fudoki.dev/__void/ready`）: policy `Bypass everyone (wwwyo-apps readiness)`。`void deploy` の readiness check 用で、消すと deploy が切り替わらない
 - `prototype previews`（Worker の Access「Previews only」）: policy `Cloudflare account members`。PR 確認用の preview URL を守る。消すと preview が誰でも開ける
 
-merge 前の変更は、本番を切り替えずに名前付きの preview URL（preview alias）で確認できます。
+merge 前の変更は、本番を切り替えずに名前付きの preview URL（preview alias）で確認できます。PR を作るか push すると [preview workflow](.github/workflows/preview.yml) が `pr-<番号>` の preview を upload し、URL を PR にコメントします（`CLOUDFLARE_API_TOKEN` が要ります）。
 
 メンバー以外に見せるときは、`prototype` に相手を許可する policy を足します。

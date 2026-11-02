@@ -1,0 +1,64 @@
+name: preview
+# PR ごとに、本番を切り替えずに Worker の version を upload し、名前付きの preview URL（pr-<番号>）を出す。
+# preview URL は Worker の Access（Previews only）で守る。設定は README の「Access」。
+# void には preview alias の option がないので、vite build の出力を wrangler で upload する。
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  preview:
+    # fork からの PR には secret が渡らない
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    concurrency:
+      group: preview-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    runs-on: ubuntu-latest
+    env:
+      ALIAS: pr-${{ github.event.pull_request.number }}
+      # pull_request の GITHUB_SHA は merge commit なので、PR の head を使う
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.HEAD_SHA }}
+      - uses: jdx/mise-action@v5
+        with:
+          version: 2026.8.6
+      - run: bun install --frozen-lockfile
+      - run: bun run check
+      # build の環境に secret を入れると dist/ssr/.dev.vars に平文で書かれるので、token は upload の step だけに渡す
+      - run: bun run build
+      - name: Upload preview
+        id: upload
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          SUBDOMAIN: ${{ vars.CLOUDFLARE_WORKERS_SUBDOMAIN }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::warning::secret CLOUDFLARE_API_TOKEN が未設定なので preview を出していません"
+            exit 0
+          fi
+          bunx wrangler versions upload --config dist/ssr/wrangler.json \
+            --preview-alias "$ALIAS" \
+            --message "PR #${{ github.event.pull_request.number }} ${HEAD_SHA::7}" | tee upload.log
+          url=$(grep -oE "https://${ALIAS}-prototype\.[a-z0-9.-]+\.workers\.dev" upload.log | head -n1 || true)
+          if [ -z "$url" ] && [ -n "$SUBDOMAIN" ]; then
+            url="https://${ALIAS}-prototype.${SUBDOMAIN%.workers.dev}.workers.dev"
+          fi
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+      - name: PR に URL を書く
+        if: steps.upload.outputs.url != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          URL: ${{ steps.upload.outputs.url }}
+        run: |
+          body="Preview（Cloudflare アカウントのログインが要ります）: ${URL}
+
+          ${HEAD_SHA::7} を upload しました。本番（prototype.fudoki.dev）は切り替えていません。"
+          gh pr comment "${{ github.event.pull_request.number }}" --repo "$GITHUB_REPOSITORY" \
+            --edit-last --create-if-none --body "$body"
