@@ -1,0 +1,38 @@
+name: deploy
+# main に merge されたら prototype.fudoki.dev へ deploy する。
+# 雛形は `void init --github`（Cloudflare 向け）。toolchain は mise に揃えている。
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# deploy 途中で止めると readiness 確認や rollback が中断するので、後続は待たせる
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: jdx/mise-action@v5
+        with:
+          version: 2026.8.6
+      - run: bun install --frozen-lockfile
+      - run: bun run check
+      - name: Deploy
+        env:
+          # Workers Scripts: Edit と Workers Routes: Edit（fudoki.dev）を持つ API token
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          # preview_urls: false の Worker を新しい checkout から deploy するとき、readiness 確認に要る
+          CLOUDFLARE_WORKERS_SUBDOMAIN: ${{ vars.CLOUDFLARE_WORKERS_SUBDOMAIN }}
+          # readiness の URL が Access に止められるときだけ要る（service token）
+          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+        run: bunx void deploy --platform cloudflare
+      - name: 本番の応答を確かめる
+        run: curl -fsS https://prototype.fudoki.dev/__void/ready
