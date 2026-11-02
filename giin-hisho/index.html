@@ -327,7 +327,7 @@ function post(name, text, limit) {
   const n = [...text].length;
   return `<article class="post"><header><div class="face" style="width:28px;height:28px;font-size:12px" aria-hidden="true">山</div><b>${name}</b><small>下書き</small></header>
     <p contenteditable="true" data-k="post-${name}">${esc(text)}</p>
-    <footer><span class="meter">${limit ? `${n} / ${limit}字` : '紙面と同じ内容'}</span><button class="btn ghost" data-say="${name}の投稿を予約して"><i data-lucide="calendar-clock" aria-hidden="true"></i>予約する</button></footer></article>`;
+    <footer><span class="meter" data-limit="${limit || ''}">${limit ? `${n} / ${limit}字` : '紙面と同じ内容'}</span><button class="btn ghost" data-say="${name}の投稿を予約して"><i data-lucide="calendar-clock" aria-hidden="true"></i>予約する</button></footer></article>`;
 }
 
 const TRACK = [
@@ -383,6 +383,7 @@ function render(name) {
   document.querySelectorAll('#view [data-k]').forEach(el => { S.edits[el.dataset.k] = el.innerHTML; });
   $('#view').innerHTML = v.render();
   document.querySelectorAll('#view [data-k]').forEach(el => { if (el.dataset.k in S.edits) el.innerHTML = S.edits[el.dataset.k]; });
+  updateMeters();
   const ctx = $('#ctx');
   ctx.hidden = !v.ctx;
   ctx.textContent = v.ctx ? `「${v.ctx}」を見ながら頼む` : '';
@@ -445,7 +446,16 @@ document.addEventListener('click', e => {
 $('#composer').addEventListener('submit', e => { e.preventDefault(); say($('#ask').value); $('#ask').value = ''; });
 $('#chatform').addEventListener('submit', e => { e.preventDefault(); say($('#ask2').value); $('#ask2').value = ''; });
 $('#close').addEventListener('click', () => { $('#chat').hidden = true; });
-document.addEventListener('input', e => { if (e.target.id === 'headline') S.headline = e.target.textContent; });
+function updateMeters() {
+  document.querySelectorAll('#view .post').forEach(post => {
+    const m = post.querySelector('.meter'), body = post.querySelector('[data-k]');
+    if (m && body && m.dataset.limit) m.textContent = `${[...body.innerText.replace(/\n$/, '')].length} / ${m.dataset.limit}字`;
+  });
+}
+document.addEventListener('input', e => {
+  if (e.target.id === 'headline') S.headline = e.target.textContent;
+  if (e.target.closest?.('.post')) updateMeters();
+});
 window.addEventListener('hashchange', () => render(location.hash.slice(1)));
 render(location.hash.slice(1) || 'home');
 </script>
