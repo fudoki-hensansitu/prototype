@@ -10,8 +10,7 @@
 ├── docs/<poc>/         # その PoC で何を作り何を確かめるか
 ├── routes/             # Void の route。`routes/<poc>/index.ts` が `/<poc>` を配る
 ├── home/index.html     # `/` の PoC 一覧
-├── void.config.ts      # Worker 名と入口（prototype.fudoki.dev）
-└── void.lock.json      # Void の解決結果。commit する
+└── void.config.ts      # Worker 名と入口（prototype.fudoki.dev）
 ```
 
 PoC はコードと docs を同名の dir で切る。PoC を足すときは次を揃える。
@@ -20,7 +19,7 @@ PoC はコードと docs を同名の dir で切る。PoC を足すときは次�
 2. `docs/<poc>/README.md` に、何を作り何を確かめるかを書く
 3. `home/index.html` の一覧に足す
 
-public repo かつ公開サイトなので、実データ・他 repo の中身・個人データは tracked なファイルに入れない。画面の中身はダミーにし、ダミーであることを画面に出す。認証は掛けていないので、見られて困るものを置かない。
+画面は Cloudflare Access の背後に置くが、repo は public なのでコードは誰でも読める。実データ・他 repo の中身・個人データは tracked なファイルに入れない。画面の中身はダミーにし、ダミーであることを画面に出す。
 
 ## セットアップ
 
@@ -40,8 +39,13 @@ deploy の手順は README を見る。lint とテストは持たない。
 ## 技術スタック
 
 - Bun + TypeScript
-- [Void](https://void.cloud)（Cloudflare Worker `prototype`）。使い方は `bun install` 後の `node_modules/void/docs/` を読む
+- [Void](https://void.cloud)（Cloudflare Worker `prototype`）。`void.lock.json` は Void が生成したら commit する
 
-## レビュー
+## Skills
 
-PR レビューは Pullfrog。設定の正本は `.github/pullfrog.config.sh`（backend の値は git から見えないので、変えるときはこの script を直して実行する）。model・effort・instructions は org の既定を継承する。public repo なので追加コミットも自動で再レビューし（`review.re-review=true`）、`@pullfrog` で手動依頼もできる。
+- Void でアプリを作る・CLI を使うとき → `.agents/skills/void/`（`voidzero-dev/void` から skillctrl で取得。取得元と hash は `skills-lock.json`・`.agents/skillctrl/`）。Claude Code へは `.claude/skills/` の相対 symlink で渡す
+
+## レビュー・計測
+
+- PR レビューは Pullfrog。PR の merge で Pullfrog を待たなくてよい。設定の正本は `.github/pullfrog.config.sh`（backend の値は git から見えないので、変えるときはこの script を直して実行する）。model・effort・instructions は org の既定を継承する
+- agent session の trace を Langfuse に送る。opt-in の file は gitignore 済みなので、`orca.yaml` の setup が新しい worktree へ同期する。新しい checkout では `pi install -l --approve "git:github.com/wwwyo/pi-observability-plugin@v0.2.0"` をやり直す
