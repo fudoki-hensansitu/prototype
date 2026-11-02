@@ -1,2 +1,4 @@
+# クロールは許可する。全 path を Disallow すると、crawler が X-Robots-Tag / meta robots の noindex を読めず、
+# 既知の URL が検索結果に残りうる。検索除外は noindex に任せる。
 User-agent: *
-Disallow: /
+Disallow:
