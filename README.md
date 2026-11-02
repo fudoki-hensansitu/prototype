@@ -18,7 +18,12 @@ mise exec -- bun run dev
 
 ## Deploy
 
-自動 deploy は張っていません。`main` の内容を手元から deploy します。Cloudflare への接続（`void connect --platform cloudflare`）は clone ごとに 1 回必要です（`.void/` は gitignore）。
+`main` に merge すると [deploy workflow](.github/workflows/deploy.yml) が型検査のあと deploy します（Actions の画面から手動でも起動できます）。repo の Actions に次を置いておく必要があります。
+
+- secret `CLOUDFLARE_API_TOKEN`: Workers Scripts: Edit と、`fudoki.dev` の Workers Routes: Edit を持つ token
+- variable `CLOUDFLARE_WORKERS_SUBDOMAIN`: アカウントの workers.dev サブドメイン（`xxx` または `xxx.workers.dev`）。Worker の preview URL を閉じているので、新しい checkout からの readiness 確認に要る
+
+手元から deploy するときは次の手順です。Cloudflare への接続（`void connect --platform cloudflare`）は clone ごとに 1 回必要です（`.void/` は gitignore）。
 
 ```bash
 mise exec -- bun run check

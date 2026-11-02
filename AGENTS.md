@@ -19,6 +19,8 @@ PoC はコードと docs を同名の dir で切る。PoC を足すときは次�
 2. `docs/<poc>/README.md` に、何を作り何を確かめるかを書く
 3. `home/index.html` の一覧に足す
 
+検索エンジンに載せないため、`void.config.ts` の `routing.headers` が全レスポンスに `X-Robots-Tag: noindex` を付け、`public/robots.txt` はクロールを許可したままにする（Disallow すると crawler が noindex を読めない）。HTML を足すときは `<head>` に `<meta name="robots" content="noindex, nofollow, noarchive">` も入れる。
+
 画面は Cloudflare Access の背後に置くが、repo は public なのでコードは誰でも読める。実データ・他 repo の中身・個人データは tracked なファイルに入れない。画面の中身はダミーにし、ダミーであることを画面に出す。
 
 ## セットアップ
