@@ -21,7 +21,7 @@ mise exec -- bun run dev
 `main` に merge すると [deploy workflow](.github/workflows/deploy.yml) が型検査のあと deploy します（Actions の画面から手動でも起動できます）。repo の Actions に次を置いておく必要があります。
 
 - secret `CLOUDFLARE_API_TOKEN`: Workers Scripts: Edit と、`fudoki.dev` の Workers Routes: Edit を持つ token
-- variable `CLOUDFLARE_WORKERS_SUBDOMAIN`: アカウントの workers.dev サブドメイン（`xxx` または `xxx.workers.dev`）。Worker の preview URL を閉じているので、新しい checkout からの readiness 確認に要る
+- variable `CLOUDFLARE_WORKERS_SUBDOMAIN`: アカウントの workers.dev サブドメイン（`xxx` または `xxx.workers.dev`）。preview URL が使えないときの、新しい checkout からの readiness 確認に要る
 
 手元から deploy するときは次の手順です。Cloudflare への接続（`void connect --platform cloudflare`）は clone ごとに 1 回必要です（`.void/` は gitignore）。
 
@@ -35,9 +35,12 @@ curl -fsS https://prototype.fudoki.dev/__void/ready
 
 ## Access（コードの外で管理）
 
-`void deploy` は Access application を作りません。Cloudflare の Zero Trust に次の 2 つを置いています。
+`void deploy` は Access application を作りません。Cloudflare の Zero Trust に次の 3 つを置いています。
 
 - `prototype`（domain `prototype.fudoki.dev`）: policy `Cloudflare account members`。Cloudflare アカウントのメンバーだけが開ける
 - `prototype /__void/ready`（domain `prototype.fudoki.dev/__void/ready`）: policy `Bypass everyone (wwwyo-apps readiness)`。`void deploy` の readiness check 用で、消すと deploy が切り替わらない
+- `prototype previews`（Worker の Access「Previews only」）: policy `Cloudflare account members`。PR 確認用の preview URL を守る。消すと preview が誰でも開ける
+
+merge 前の変更は、本番を切り替えずに名前付きの preview URL（preview alias）で確認できます。
 
 メンバー以外に見せるときは、`prototype` に相手を許可する policy を足します。
