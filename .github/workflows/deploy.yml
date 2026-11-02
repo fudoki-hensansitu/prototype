@@ -6,12 +6,6 @@ on:
     branches: [main]
   workflow_dispatch:
 
-# deploy 途中で止めると readiness 確認や rollback が中断するので、後続は待たせる。
-# 手動起動で別 branch を選んでも同じ Worker に出るので、group は ref で分けない
-concurrency:
-  group: deploy-production
-  cancel-in-progress: false
-
 permissions:
   contents: read
 
@@ -19,6 +13,12 @@ jobs:
   deploy:
     # 手動起動でも main 以外の branch は本番に出さない
     if: github.ref == 'refs/heads/main'
+    # deploy 途中で止めると readiness 確認や rollback が中断するので、後続は待たせる。
+    # 本番の Worker は 1 つなので group は ref で分けない。job に置くことで、
+    # if で skip される run が待機中の main の deploy を押し出さない
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -40,4 +40,8 @@ jobs:
           CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
         run: bunx void deploy --platform cloudflare
       - name: 本番の応答を確かめる
-        run: curl -fsS https://prototype.fudoki.dev/__void/ready
+        # Access の login へ redirect されても curl -f は成功するので、200 を要求する
+        run: |
+          status=$(curl -sS -o /dev/null -w '%{http_code}' https://prototype.fudoki.dev/__void/ready)
+          echo "status=$status"
+          test "$status" = 200
