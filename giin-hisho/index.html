@@ -61,6 +61,8 @@ p { margin: 0; }
 .nav:hover { background: var(--sunk); }
 .nav[aria-current="page"] { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
 .nav .dot { margin-left: auto; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: var(--shu); color: var(--surface); font-size: 11px; display: grid; place-items: center; font-weight: 700; }
+.nav .nl { display: grid; gap: 1px; min-width: 0; line-height: 1.4; }
+.nav .nl small { font-size: 11px; font-weight: 400; color: var(--muted); }
 .nav .ico, .nav svg { width: 18px; height: 18px; flex: none; color: var(--muted); }
 svg.lucide { width: 1.1em; height: 1.1em; vertical-align: -0.15em; flex: none; }
 .send svg, .close svg { width: 18px; height: 18px; vertical-align: middle; }
@@ -208,10 +210,10 @@ tr.hl td { background: var(--accent-soft); }
   <aside class="side" aria-label="ナビゲーション">
     <div class="me"><div class="face" aria-hidden="true">秘</div><div><b>秘書</b><small>山田議員事務所</small></div></div>
     <button class="nav" data-go="home"><i data-lucide="message-circle" class="ico" aria-hidden="true"></i>メインチャット<span class="dot">3</span></button>
-    <div class="navlabel">仕事</div>
-    <button class="nav" data-go="kusei"><i data-lucide="newspaper" class="ico" aria-hidden="true"></i>区政報告 12月号<span class="dot">1</span></button>
-    <button class="nav" data-go="tsuiseki"><i data-lucide="list-checks" class="ico" aria-hidden="true"></i>「検討します」の追跡<span class="dot">2</span></button>
-    <button class="nav" data-go="ugoki"><i data-lucide="radar" class="ico" aria-hidden="true"></i>今週の動き</button>
+    <div class="navlabel">秘書に任せていること</div>
+    <button class="nav" data-go="kusei"><i data-lucide="newspaper" class="ico" aria-hidden="true"></i><span class="nl">活動を区民に伝える<small>区政報告・SNS・HPの文面</small></span><span class="dot">1</span></button>
+    <button class="nav" data-go="tsuiseki"><i data-lucide="list-checks" class="ico" aria-hidden="true"></i><span class="nl">答弁のその後<small>「検討します」の件はいま</small></span><span class="dot">2</span></button>
+    <button class="nav" data-go="ugoki"><i data-lucide="radar" class="ico" aria-hidden="true"></i><span class="nl">追っているテーマの新着<small>発表・委員会・報道から</small></span></button>
       </aside>
 
   <section class="main">
@@ -264,7 +266,7 @@ const VIEWS = {
       <div class="bubble"><span class="when">9:02</span><p>了解です。9月号で使った大井町駅前の写真を差し込みました。入稿は11/20（金）の想定なので、それまでに見出しだけ決めてください。</p></div>`,
   },
   kusei: {
-    icon: 'newspaper', title: '区政報告 12月号', sub: '第3回定例会の一般質問から ・ 入稿 11/20（金）',
+    icon: 'newspaper', title: '活動を区民に伝える', sub: '区政報告 12月号（第3回定例会の一般質問から）・ 入稿 11/20（金）',
     ctx: '区政報告 12月号',
     sugg: ['見出しを短くして', '高齢の方向けにやさしく', 'X用に140字で'],
     render: () => `
@@ -275,13 +277,13 @@ const VIEWS = {
       ${S.ktab === 'sns' ? snsView() : paperView()}`,
   },
   tsuiseki: {
-    icon: 'list-checks', title: '「検討します」の追跡', sub: '過去4年の一般質問で、区が「検討する」「研究する」と答えたもの',
+    icon: 'list-checks', title: '答弁のその後を確かめる', sub: '過去4年の一般質問で、区が「検討する」「研究する」と答えたものが、いまどうなっているか',
     ctx: '「検討します」の追跡',
     sugg: ['予算がついた2件を区政報告に入れて', '動きなしの件で再質問を作って', '他区の例も調べて'],
     render: () => trackView(),
   },
   ugoki: {
-    icon: 'radar', title: '今週の動き', sub: '山田議員が追っているテーマについて、区の発表・委員会資料・報道から',
+    icon: 'radar', title: '追っているテーマの新着', sub: '今週の動き ・ 山田議員が追っているテーマについて、区の発表・委員会資料・報道から',
     ctx: '今週の動き',
     sugg: ['入札不調の件を詳しく', '委員会で聞くべきことは？', '区民向けに一言で'],
     render: () => feedView(),
