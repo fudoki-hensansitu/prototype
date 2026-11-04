@@ -33,7 +33,7 @@ jobs:
         env:
           # Workers Scripts: Edit と Workers Routes: Edit（fudoki.dev）を持つ API token
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          # preview_urls: false の Worker を新しい checkout から deploy するとき、readiness 確認に要る
+          # version の preview URL が使えないとき、新しい checkout からの readiness 確認に要る
           CLOUDFLARE_WORKERS_SUBDOMAIN: ${{ vars.CLOUDFLARE_WORKERS_SUBDOMAIN }}
           # readiness の URL が Access に止められるときだけ要る（service token）
           CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
