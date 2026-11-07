@@ -356,6 +356,7 @@ function run(key) {
 }
 
 function showResult(key) {
+  if (!Object.hasOwn(OUT, key)) return;
   const a = APPS[key];
   const out = $('#out');
   out.innerHTML = `
@@ -410,7 +411,7 @@ function simple(key) {
 function route() {
   const id = (location.hash || '#home').slice(1);
   nav(id);
-  if (APPS[id]) appPage(id);
+  if (Object.hasOwn(APPS, id)) appPage(id);
   else if (id === 'history' || id === 'budget' || id === 'minutes') simple(id);
   else { nav('home'); home(); }
   window.scrollTo(0, 0);
