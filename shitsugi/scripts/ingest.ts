@@ -131,7 +131,7 @@ function parse(path: string, html: string): { meeting: Meeting; speeches: Speech
   const { kind, body_name } = kindOf(path, title);
   const first = lines.findIndex((l) => l.startsWith('○'));
   const head = first === -1 ? lines : lines.slice(0, first);
-  const agendaStart = head.findIndex((l) => /^[6６]．(議題|議事日程)/.test(l));
+  const agendaStart = head.findIndex((l) => /^[0-9０-９]+．(議題|議事日程)/.test(l));
   const agenda = agendaStart === -1 ? '' : head.slice(agendaStart + 1).filter((l) => !/^（.*）$/.test(l)).join('\n');
   // 委員会の出席者「委員　ほづみ　ゆうき」
   const attendees = head
