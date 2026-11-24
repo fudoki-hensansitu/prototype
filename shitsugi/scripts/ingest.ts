@@ -117,7 +117,9 @@ const ENT: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', nbs
 function toLines(html: string): string[] {
   let t = html.split('ここから本文です')[1] ?? html;
   t = t.split('お問い合わせ先')[0].split('<script')[0];
-  t = t.replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|div|li|h\d|tr)>/gi, '\n').replace(/<[^>]+>/g, '');
+  t = t.replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|div|li|h\d|tr)>/gi, '\n');
+  // 入れ子の「<scr<b>ipt>」のような崩れた印も残さないよう、タグが無くなるまで外す。ここで作るのは表示用の HTML ではなく本文の文字
+  for (let prev = ''; prev !== t; ) { prev = t; t = t.replace(/<[^>]*>/g, ''); }
   t = t.replace(/&(#?\w+);/g, (_, e) => ENT[e] ?? (e.startsWith('#') ? String.fromCodePoint(Number(e.slice(1))) : _));
   return t.split('\n').map((l) => l.trim()).filter(Boolean);
 }
