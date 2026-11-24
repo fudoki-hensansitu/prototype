@@ -114,13 +114,20 @@ async function fetchMeeting(path: string, force: boolean): Promise<string> {
 // ---- 会議録を発言に切る ----
 
 const ENT: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', nbsp: ' ', '#39': "'" };
+// &#12288; と &#x3000; の両方を読む。番号が文字として正しくなければ null（元の印のまま残す）
+function numericEntity(e: string): string | null {
+  const m = e.match(/^#(?:[xX]([0-9a-fA-F]+)|(\d+))$/);
+  if (!m) return null;
+  const cp = m[1] ? parseInt(m[1], 16) : Number(m[2]);
+  return cp <= 0x10ffff ? String.fromCodePoint(cp) : null;
+}
 function toLines(html: string): string[] {
   let t = html.split('ここから本文です')[1] ?? html;
   t = t.split('お問い合わせ先')[0].split('<script')[0];
   t = t.replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|div|li|h\d|tr)>/gi, '\n');
   // 入れ子の「<scr<b>ipt>」のような崩れた印も残さないよう、タグが無くなるまで外す。ここで作るのは表示用の HTML ではなく本文の文字
   for (let prev = ''; prev !== t; ) { prev = t; t = t.replace(/<[^>]*>/g, ''); }
-  t = t.replace(/&(#?\w+);/g, (_, e) => ENT[e] ?? (e.startsWith('#') ? String.fromCodePoint(Number(e.slice(1))) : _));
+  t = t.replace(/&(#?\w+);/g, (whole, e: string) => ENT[e] ?? numericEntity(e) ?? whole);
   return t.split('\n').map((l) => l.trim()).filter(Boolean);
 }
 
