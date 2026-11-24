@@ -1,4 +1,5 @@
-// shitsugi（中央区議会の質疑）の表。中身は shitsugi/scripts/ingest.ts が作る SQL で入れ、repo には入れない。
+// shitsugi（中央区議会の質疑）の表。中身は shitsugi/scripts/ingest.ts が差分で入れ、repo には入れない。
+// 推定でしか決まらない項目（問いと答えの対応・款・理事者の役職）は持たない。
 import { index, integer, sqliteTable, text } from 'void/schema-d1';
 
 export const members = sqliteTable('members', {
@@ -18,6 +19,7 @@ export const meetings = sqliteTable(
     heldOn: text('held_on').notNull(),
     sourceUrl: text('source_url').notNull(),
     agenda: text('agenda').notNull(),
+    contentHash: text('content_hash').notNull().default(''), // 本文の HTML の sha256 の先頭16桁。取り直したとき変わったかを見る（差分化より前の行は空）
   },
   (t) => [index('meetings_held_on').on(t.heldOn)],
 );
@@ -30,10 +32,7 @@ export const speeches = sqliteTable(
     seq: integer('seq').notNull(),
     speakerLabel: text('speaker_label').notNull(), // 会議録の「○」の後ろの印字のまま
     speakerKind: text('speaker_kind').notNull(), // member・chair・official・other
-    memberName: text('member_name'),
-    officialRole: text('official_role'),
-    topic: text('topic'), // 予算・決算特別委員会の款（区民費など）
-    exchangeSeq: integer('exchange_seq'), // 問いを始めた議員の発言の seq。答弁はその問いの seq を持つ
+    memberName: text('member_name'), // 議員の名簿で1人に決まったときだけ。決まらなければ NULL
     body: text('body').notNull(),
   },
   (t) => [index('speeches_meeting').on(t.meetingId, t.seq), index('speeches_member').on(t.memberName)],
