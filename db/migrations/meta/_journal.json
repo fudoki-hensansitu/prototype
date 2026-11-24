@@ -1,0 +1,20 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1794924454375,
+      "tag": "20261117140734_colorful_shooting_star",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1795525534412,
+      "tag": "20261124130534_heavy_joystick",
+      "breakpoints": true
+    }
+  ]
+}
